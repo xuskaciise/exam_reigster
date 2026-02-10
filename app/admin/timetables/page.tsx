@@ -771,13 +771,15 @@ export default function TimetablesPage() {
       
       // Find academicYearId from the selected semester
       const selectedSemester = semesters.find(s => s.id === copyFilters.semesterId)
-      const academicYearId = selectedSemester?.academicYearId || filters.academicYearId
+      const academicYearId = selectedSemester?.academicYearId || filters.academicYearId || ''
       
       // Update filters to show the new timetable
       setFilters({
-        academicYearId,
-        ...copyFilters,
-        classId: copyFilters.classId
+        academicYearId: academicYearId,
+        semesterId: copyFilters.semesterId,
+        departmentId: copyFilters.departmentId,
+        studyMode: copyFilters.studyMode,
+        classId: copyFilters.classId || ''
       })
       
       // Fetch the new timetable
