@@ -769,8 +769,13 @@ export default function TimetablesPage() {
       alert(`Successfully copied ${copied} entry/entries. ${errors > 0 ? `${errors} error(s) occurred.` : ''}`)
       setShowCopyModal(false)
       
+      // Find academicYearId from the selected semester
+      const selectedSemester = semesters.find(s => s.id === copyFilters.semesterId)
+      const academicYearId = selectedSemester?.academicYearId || filters.academicYearId
+      
       // Update filters to show the new timetable
       setFilters({
+        academicYearId,
         ...copyFilters,
         classId: copyFilters.classId
       })
@@ -1374,13 +1379,15 @@ export default function TimetablesPage() {
                           >
                             {entries.map((entry) => {
                               // Check for conflicts
-                              const hasConflict = entries.length > 1 || 
+                              const hasConflict = Boolean(
+                                entries.length > 1 || 
                                 (entry.room && timetable.entries.some(e => 
                                   e.id !== entry.id && 
                                   e.room === entry.room && 
                                   e.dayOfWeek === entry.dayOfWeek &&
                                   e.shiftTemplateId === entry.shiftTemplateId
                                 ))
+                              )
                               return (
                                 <div
                                   key={entry.id}
