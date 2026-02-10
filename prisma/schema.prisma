@@ -47,6 +47,9 @@ model Department {
   updatedAt DateTime @updatedAt
 
   classes   Class[]
+  timetables Timetable[]
+  courses   Course[]
+  lecturers Lecturer[]
 
   @@map("departments")
 }
@@ -59,6 +62,8 @@ model Class {
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  timetables   Timetable[]
 
   @@index([departmentId])
   @@map("classes")
@@ -162,4 +167,185 @@ enum ApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ============================================
+// TIMETABLE MANAGEMENT SYSTEM (NEW FEATURES)
+// ============================================
+
+// Shift Template Model (Global shift templates)
+model ShiftTemplate {
+  id          String      @id @default(cuid())
+  name        String      // e.g., "01 Morning Shift", "02 Noon Shift"
+  studyMode   Shift       // FULL_TIME or PART_TIME
+  startTime   String      // Time in HH:mm format (e.g., "07:45")
+  endTime     String      // Time in HH:mm format (e.g., "09:25")
+  duration    Int         // Duration in minutes
+  isBreak     Boolean     @default(false) // If true, this is a break period (read-only)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  shiftBlocks ShiftBlock[]
+  timetableEntries TimetableEntry[]
+
+  @@index([studyMode])
+  @@index([isActive])
+  @@map("shift_templates")
+}
+
+// Shift Block Model (Links shifts to specific days)
+model ShiftBlock {
+  id             String       @id @default(cuid())
+  shiftTemplateId String
+  dayOfWeek      DayOfWeek    // SATURDAY, SUNDAY, MONDAY, etc.
+  shiftTemplate  ShiftTemplate @relation(fields: [shiftTemplateId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([shiftTemplateId, dayOfWeek])
+  @@index([dayOfWeek])
+  @@map("shift_blocks")
+}
+
+enum DayOfWeek {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+// Academic Year Model
+model AcademicYear {
+  id          String     @id @default(cuid())
+  name        String     @unique // e.g., "2024-25", "AY 2024-25"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  semesters   Semester[]
+
+  @@index([isActive])
+  @@map("academic_years")
+}
+
+// Semester / Session Model
+model Semester {
+  id              String        @id @default(cuid())
+  academicYearId  String
+  name            String        // e.g., "Semester 1 (ODD)", "Semester 2 (EVEN)", "Summer Session"
+  semesterType    SemesterType
+  startDate       DateTime
+  endDate         DateTime
+  status          SemesterStatus @default(UPCOMING)
+  description     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  academicYear    AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  timetables      Timetable[]
+
+  @@index([academicYearId])
+  @@index([status])
+  @@map("semesters")
+}
+
+// Timetable Model (Per Department, Class, Semester)
+model Timetable {
+  id              String            @id @default(cuid())
+  semesterId      String
+  departmentId   String
+  classId        String?
+  studyMode      Shift              // FULL_TIME or PART_TIME
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  semester       Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  department     Department        @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  class          Class?            @relation(fields: [classId], references: [id], onDelete: SetNull)
+  entries        TimetableEntry[]
+
+  @@unique([semesterId, departmentId, classId, studyMode])
+  @@index([semesterId])
+  @@index([departmentId])
+  @@index([classId])
+  @@index([studyMode])
+  @@map("timetables")
+}
+
+// Timetable Entry Model
+model TimetableEntry {
+  id              String            @id @default(cuid())
+  timetableId     String
+  dayOfWeek       DayOfWeek
+  shiftTemplateId String
+  courseName      String
+  lecturerName    String
+  room            String?
+  entryType       TimetableEntryType @default(LECTURE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  timetable       Timetable         @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  shiftTemplate   ShiftTemplate     @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
+
+  @@index([timetableId])
+  @@index([dayOfWeek])
+  @@index([shiftTemplateId])
+  @@map("timetable_entries")
+}
+
+enum TimetableEntryType {
+  LECTURE
+  LABORATORY
+  TUTORIAL
+}
+
+// Course Model (For Timetable System)
+model Course {
+  id          String   @id @default(cuid())
+  code        String   // e.g., "CS101", "MATH201"
+  title       String   // e.g., "Data Structures", "Discrete Mathematics"
+  departmentId String?
+  department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([code])
+  @@map("courses")
+}
+
+// Lecturer Model (For Timetable System)
+model Lecturer {
+  id          String   @id @default(cuid())
+  fullName    String   // e.g., "Dr. John Nash", "Prof. Grace Hopper"
+  email       String?  @unique
+  phone       String?
+  departmentId String?
+  department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([fullName])
+  @@map("lecturers")
+}
+
+enum SemesterType {
+  ODD      // Semester 1
+  EVEN     // Semester 2
+  SUMMER   // Summer Session
+}
+
+enum SemesterStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  INACTIVE
 }

@@ -12,7 +12,13 @@ import {
   Settings,
   LogOut,
   Moon,
-  Building2
+  Building2,
+  Clock,
+  Calendar,
+  CalendarDays,
+  BookOpen,
+  User,
+  FileText
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Logo from '@/components/Logo'
@@ -58,9 +64,15 @@ export default function Sidebar() {
 
   const toolItems: NavItem[] = [
     { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
+    { name: 'Timetable Reports', href: '/admin/timetable-reports', icon: FileText },
     { name: 'Open/Close Registration', href: '/admin/registration-control', icon: Link2 },
     { name: 'Departments', href: '/admin/departments', icon: Building2 },
     { name: 'Classes', href: '/admin/classes', icon: Users },
+    { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+    { name: 'Lecturers', href: '/admin/lecturers', icon: User },
+    { name: 'Shift Templates', href: '/admin/shift-templates', icon: Clock },
+    { name: 'Academic Calendar', href: '/admin/academic-calendar', icon: Calendar },
+    { name: 'Timetables', href: '/admin/timetables', icon: CalendarDays },
     { name: 'User Management', href: '/admin/user-management', icon: Users },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ]

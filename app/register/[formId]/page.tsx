@@ -232,56 +232,56 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Logo size="sm" showText={false} />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
-              <p className="text-sm text-gray-600">Special Exam Registration System</p>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Student Portal</h1>
+              <p className="text-xs sm:text-sm text-gray-600">Special Exam Registration System</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Moon className="w-5 h-5 text-gray-600" />
+              <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
         </div>
       </header>
 
       {/* Progress Indicator */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <div className={`flex items-center gap-3 ${step >= 1 ? 'text-primary' : 'text-gray-400'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-4xl mx-auto flex items-center gap-2 sm:gap-4">
+          <div className={`flex items-center gap-2 sm:gap-3 ${step >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 text-sm sm:text-base ${
               step >= 1 ? 'bg-primary border-primary text-white' : 'border-gray-300'
             }`}>
               {step > 1 ? '✓' : '1'}
             </div>
-            <span className="font-medium">Student Information</span>
+            <span className="font-medium text-xs sm:text-sm md:text-base">Student Information</span>
           </div>
           <div className={`flex-1 h-1 ${step >= 2 ? 'bg-primary' : 'bg-gray-200'}`}></div>
-          <div className={`flex items-center gap-3 ${step >= 2 ? 'text-primary' : 'text-gray-400'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+          <div className={`flex items-center gap-2 sm:gap-3 ${step >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 text-sm sm:text-base ${
               step >= 2 ? 'bg-primary border-primary text-white' : 'border-gray-300'
             }`}>
               2
             </div>
-            <span className="font-medium">Exam Details</span>
+            <span className="font-medium text-xs sm:text-sm md:text-base">Exam Details</span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-4 sm:p-6">
         {/* Form Name and End Date */}
         {formName && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{formName}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{formName}</h2>
                 {endDate && (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Registration closes: <span className="font-semibold text-gray-900">{new Date(endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                   </p>
                 )}
@@ -289,15 +289,15 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
             </div>
           </div>
         )}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8">
           {step === 1 && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Student Information</h2>
-              <p className="text-gray-600 mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Student Information</h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                 Please enter your academic information as it appears in the university records.
               </p>
-              <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Student ID Number
@@ -352,7 +352,7 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                       </button>
                       
                       {isClassDropdownOpen && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 sm:max-h-60 overflow-hidden">
                           <div className="p-2 border-b border-gray-200">
                             <input
                               type="text"
@@ -364,7 +364,7 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                               autoFocus
                             />
                           </div>
-                          <div className="overflow-y-auto max-h-48">
+                          <div className="overflow-y-auto max-h-48 sm:max-h-48">
                             {classes
                               .filter((cls) => {
                                 // Filter by search query only
@@ -450,31 +450,31 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Study Time
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {[
                       { value: 'fulltime', label: 'Full Time', time: 'Full-time student' },
                       { value: 'parttime', label: 'Part Time', time: 'Part-time student' },
                     ].map((option) => (
                       <label
                         key={option.value}
-                        className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                        className={`border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-colors ${
                           shift === option.value
                             ? 'border-primary bg-primary/5'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <input
                             type="radio"
                             name="shift"
                             value={option.value}
                             checked={shift === option.value}
                             onChange={(e) => setShift(e.target.value)}
-                            className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+                            className="w-4 h-4 text-primary border-gray-300 focus:ring-primary flex-shrink-0"
                           />
                           <div>
-                            <div className="font-medium text-gray-900">{option.label}</div>
-                            <div className="text-sm text-gray-500">{option.time}</div>
+                            <div className="font-medium text-sm sm:text-base text-gray-900">{option.label}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">{option.time}</div>
                           </div>
                         </div>
                       </label>
@@ -482,13 +482,13 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
                   >
                     Next Step
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               </form>
@@ -497,14 +497,14 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
 
           {step === 2 && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Exam Requirements</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Select Exam Requirements</h2>
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 {/* Exam Scope */}
                 <div>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 mb-3 sm:mb-4">
                     Please select the type of exam you are registering for.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {[
                       { value: 'all-midterm', label: 'All Midterm Exams', desc: 'All midterm exams for the semester' },
                       { value: 'all-final', label: 'All Final Exams', desc: 'All final exams for the semester' },
@@ -512,7 +512,7 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                     ].map((option) => (
                       <label
                         key={option.value}
-                        className={`border-2 rounded-lg p-4 cursor-pointer transition-colors relative ${
+                        className={`border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-colors relative ${
                           examScope === option.value
                             ? 'border-primary bg-primary/5'
                             : 'border-gray-200 hover:border-gray-300'
@@ -527,12 +527,12 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                           className="sr-only"
                         />
                         {examScope === option.value && (
-                          <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm">✓</span>
+                          <div className="absolute top-2 right-2 w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs sm:text-sm">✓</span>
                           </div>
                         )}
-                        <div className="font-medium text-gray-900 mb-1">{option.label}</div>
-                        <div className="text-sm text-gray-500">{option.desc}</div>
+                        <div className="font-medium text-sm sm:text-base text-gray-900 mb-1 pr-6 sm:pr-8">{option.label}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{option.desc}</div>
                       </label>
                     ))}
                   </div>
@@ -541,31 +541,31 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                 {/* Course List */}
                 {examScope === 'specific' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">COURSE LIST</h3>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">COURSE LIST</h3>
                       <button
                         type="button"
                         onClick={handleAddCourse}
-                        className="text-primary hover:text-primary-dark font-medium flex items-center gap-1"
+                        className="text-primary hover:text-primary-dark font-medium flex items-center gap-1 text-sm sm:text-base"
                       >
-                        <span className="text-xl">+</span>
+                        <span className="text-lg sm:text-xl">+</span>
                         Add Course
                       </button>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {courses.map((course) => (
-                        <div key={course.id} className="flex items-center gap-4">
+                        <div key={course.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                           <input
                             type="text"
                             value={course.name}
                             onChange={(e) => handleCourseChange(course.id, 'name', e.target.value)}
                             placeholder="e.g., Introduction to Computer Science"
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                           />
                           <select
                             value={course.examType}
                             onChange={(e) => handleCourseChange(course.id, 'examType', e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                           >
                             <option>Midterm</option>
                             <option>Final</option>
@@ -573,9 +573,9 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                           <button
                             type="button"
                             onClick={() => handleRemoveCourse(course.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors self-start sm:self-auto"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                           </button>
                         </div>
                       ))}
@@ -599,22 +599,22 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-4 gap-3 sm:gap-0">
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
                   >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     Back to Step 1
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Registration'}
-                    {!isSubmitting && <ArrowRight className="w-5 h-5" />}
+                    {!isSubmitting && <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                 </div>
               </form>
@@ -624,10 +624,10 @@ export default function RegistrationFormPage({ params }: { params: { formId: str
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 pb-8 text-center">
-        <p className="text-sm text-gray-600">
+      <footer className="mt-8 sm:mt-12 pb-6 sm:pb-8 text-center px-4">
+        <p className="text-xs sm:text-sm text-gray-600">
           Having issues? Contact the FECT administration office{' '}
-          <a href="mailto:fect_fa@siu.edu.so" className="text-primary hover:underline">
+          <a href="mailto:fect_fa@siu.edu.so" className="text-primary hover:underline break-all">
             fect_fa@siu.edu.so
           </a>
           {' '}or call 0613999945

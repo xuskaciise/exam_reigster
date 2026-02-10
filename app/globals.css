@@ -13,3 +13,246 @@
     text-wrap: balance;
   }
 }
+
+/* Print styles for Timetable Reports */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 2cm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Reset body and html */
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Show AdminLayout wrapper - CRITICAL */
+  body > div {
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+  }
+
+  /* Show flex container - CRITICAL */
+  body > div[class*="flex"] {
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+  }
+
+  /* Hide ONLY the sidebar (first child of flex) */
+  body > div[class*="flex"][class*="h-screen"] > div:first-child {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Show the main content area (second child of flex) */
+  body > div[class*="flex"][class*="h-screen"] > div:last-child {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    background: white !important;
+  }
+
+  /* Hide Header */
+  body > div[class*="flex"][class*="h-screen"] > div:last-child > header {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Show main container - CRITICAL */
+  main {
+    display: block !important;
+    visibility: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  /* Override print:hidden on timetable-reports-container - show it */
+  #timetable-reports-container {
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+  }
+
+  /* Hide all direct children of container EXCEPT the report */
+  #timetable-reports-container > div:not(#timetable-report-content) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Hide all buttons and navigation */
+  button,
+  nav,
+  aside,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  [class*="Header"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Show report content - CRITICAL */
+  #timetable-report-content {
+    display: block !important;
+    visibility: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: white !important;
+    position: relative !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Show all descendants of report content */
+  #timetable-report-content * {
+    visibility: visible !important;
+  }
+
+  /* Ensure report view containers are visible */
+  #lecturer-report-view,
+  #class-report-view {
+    display: block !important;
+    visibility: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: white !important;
+  }
+
+  /* CRITICAL: Force table elements to display correctly */
+  #timetable-report-content table,
+  #lecturer-report-view table,
+  #class-report-view table {
+    display: table !important;
+    visibility: visible !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    margin: 0 !important;
+    border: 1px solid #000 !important;
+  }
+
+  #timetable-report-content thead,
+  #lecturer-report-view thead,
+  #class-report-view thead {
+    display: table-header-group !important;
+    visibility: visible !important;
+  }
+
+  #timetable-report-content tbody,
+  #lecturer-report-view tbody,
+  #class-report-view tbody {
+    display: table-row-group !important;
+    visibility: visible !important;
+  }
+
+  #timetable-report-content tr,
+  #lecturer-report-view tr,
+  #class-report-view tr {
+    display: table-row !important;
+    visibility: visible !important;
+    page-break-inside: avoid !important;
+  }
+
+  #timetable-report-content td,
+  #timetable-report-content th,
+  #lecturer-report-view td,
+  #lecturer-report-view th,
+  #class-report-view td,
+  #class-report-view th {
+    display: table-cell !important;
+    visibility: visible !important;
+    page-break-inside: avoid !important;
+    border: 1px solid #000 !important;
+    padding: 8px 4px !important;
+  }
+
+  /* Table header styling */
+  #timetable-report-content th,
+  #lecturer-report-view th,
+  #class-report-view th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+    color: black !important;
+  }
+
+  /* Keep colored backgrounds in print - don't remove them */
+  /* Colors will print as they appear on screen */
+
+  /* Grid and flex containers */
+  #timetable-report-content .grid,
+  #lecturer-report-view .grid,
+  #class-report-view .grid {
+    display: grid !important;
+    visibility: visible !important;
+  }
+
+  #timetable-report-content .flex,
+  #lecturer-report-view .flex,
+  #class-report-view .flex {
+    display: flex !important;
+    visibility: visible !important;
+  }
+
+  /* Div containers */
+  #timetable-report-content div,
+  #lecturer-report-view div,
+  #class-report-view div {
+    visibility: visible !important;
+  }
+
+  /* Paragraph and text elements */
+  #timetable-report-content p,
+  #timetable-report-content span,
+  #timetable-report-content div,
+  #lecturer-report-view p,
+  #lecturer-report-view span,
+  #lecturer-report-view div,
+  #class-report-view p,
+  #class-report-view span,
+  #class-report-view div {
+    color: black !important;
+  }
+
+  /* Remove shadows but keep rounded corners */
+  #timetable-report-content *,
+  #lecturer-report-view *,
+  #class-report-view * {
+    box-shadow: none !important;
+  }
+
+  /* Footer */
+  #timetable-report-content .print\\:footer,
+  #lecturer-report-view .print\\:footer,
+  #class-report-view .print\\:footer {
+    border-top: 1px solid #000 !important;
+    margin-top: 1rem !important;
+    padding-top: 0.5rem !important;
+    font-size: 9pt !important;
+  }
+
+  /* Page breaks */
+  #timetable-report-content .print\\:break-after {
+    page-break-after: always !important;
+  }
+
+  #timetable-report-content .print\\:break-before {
+    page-break-before: always !important;
+  }
+}
