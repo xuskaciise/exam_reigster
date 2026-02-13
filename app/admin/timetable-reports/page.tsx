@@ -49,6 +49,27 @@ interface TimetableEntry {
 // Day order: Saturday → Friday
 const DAY_ORDER: DayOfWeek[] = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']
 
+// Convert 24-hour format to 12-hour format (e.g., "13:00" -> "1:00 PM")
+function formatTime12Hour(time24: string): string {
+  const [hours, minutes] = time24.split(':').map(Number)
+  const period = hours >= 12 ? 'PM' : 'AM'
+  const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`
+}
+
+// Extract course name only (remove course code if present)
+// Format: "CODE - Title" -> "Title"
+function getCourseNameOnly(courseName: string): string {
+  // If courseName contains " - ", extract only the title part
+  if (courseName.includes(' - ')) {
+    const parts = courseName.split(' - ')
+    // Return everything after " - " (the title)
+    return parts.slice(1).join(' - ').trim()
+  }
+  // If no " - " found, return as is
+  return courseName.trim()
+}
+
 export default function TimetableReportsPage() {
   const [reportType, setReportType] = useState<'lecturer' | 'class'>('lecturer')
   
@@ -389,10 +410,11 @@ export default function TimetableReportsPage() {
         const dayName = day.charAt(0) + day.slice(1).toLowerCase()
         if (reportData.entries[day] && reportData.entries[day].length > 0) {
           reportData.entries[day].forEach((entry: any) => {
-            const time = `${entry.shiftTemplate.startTime} - ${entry.shiftTemplate.endTime}`
+            const time = `${formatTime12Hour(entry.shiftTemplate.startTime)} - ${formatTime12Hour(entry.shiftTemplate.endTime)}`
+            const courseNameOnly = getCourseNameOnly(entry.courseName)
             const className = entry.class ? entry.class.classTitle : 'N/A'
             const departmentName = entry.department ? entry.department.name : 'N/A'
-            csvContent += `${dayName},${time},"${entry.courseName}",${className},${departmentName},${entry.semester.name}\n`
+            csvContent += `${dayName},${time},"${courseNameOnly}",${className},${departmentName},${entry.semester.name}\n`
           })
         } else {
           csvContent += `${dayName},,,,\n`
@@ -404,8 +426,9 @@ export default function TimetableReportsPage() {
         const dayName = day.charAt(0) + day.slice(1).toLowerCase()
         if (reportData.entries[day] && reportData.entries[day].length > 0) {
           reportData.entries[day].forEach((entry: any) => {
-            const time = `${entry.shiftTemplate.startTime} - ${entry.shiftTemplate.endTime}`
-            csvContent += `${dayName},${time},"${entry.courseName}","${entry.lecturerName}"\n`
+            const time = `${formatTime12Hour(entry.shiftTemplate.startTime)} - ${formatTime12Hour(entry.shiftTemplate.endTime)}`
+            const courseNameOnly = getCourseNameOnly(entry.courseName)
+            csvContent += `${dayName},${time},"${courseNameOnly}","${entry.lecturerName}"\n`
           })
         } else {
           csvContent += `${dayName},,,\n`
@@ -1021,9 +1044,9 @@ function LecturerReportView({ data }: { data: any }) {
                     </td>
                   )}
                   <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
-                    {entry.shiftTemplate.startTime} - {entry.shiftTemplate.endTime}
+                    {formatTime12Hour(entry.shiftTemplate.startTime)} - {formatTime12Hour(entry.shiftTemplate.endTime)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{entry.courseName}</td>
+                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{getCourseNameOnly(entry.courseName)}</td>
                   <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
                     {entry.class ? entry.class.classTitle : 'N/A'}
                   </td>
@@ -1130,9 +1153,9 @@ function ClassReportView({ data }: { data: any }) {
                     </td>
                   )}
                   <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
-                    {entry.shiftTemplate.startTime} - {entry.shiftTemplate.endTime}
+                    {formatTime12Hour(entry.shiftTemplate.startTime)} - {formatTime12Hour(entry.shiftTemplate.endTime)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{entry.courseName}</td>
+                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{getCourseNameOnly(entry.courseName)}</td>
                   <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{entry.lecturerName}</td>
                 </tr>
               ))
