@@ -9,13 +9,14 @@ export async function GET(request: NextRequest) {
     const academicYearId = searchParams.get('academicYearId')
     const semesterId = searchParams.get('semesterId')
     const day = searchParams.get('day') as DayOfWeek | null
-    const shiftTemplateId = searchParams.get('shiftTemplateId')
+    const shiftTemplateId = searchParams.get('shiftTemplateId') // Optional
+    const departmentId = searchParams.get('departmentId') // Optional
     const classId = searchParams.get('classId') // Optional
 
-    // Validate required parameters
-    if (!academicYearId || !semesterId || !day || !shiftTemplateId) {
+    // Validate required parameters (only Academic Year, Semester, and Day are required)
+    if (!academicYearId || !semesterId || !day) {
       return NextResponse.json(
-        { error: 'Missing required parameters: academicYearId, semesterId, day, shiftTemplateId' },
+        { error: 'Missing required parameters: academicYearId, semesterId, day' },
         { status: 400 }
       )
     }
@@ -23,13 +24,22 @@ export async function GET(request: NextRequest) {
     // Build where clause for timetable entries
     const where: any = {
       dayOfWeek: day,
-      shiftTemplateId: shiftTemplateId,
       timetable: {
         semesterId: semesterId,
         semester: {
           academicYearId: academicYearId,
         },
       },
+    }
+
+    // If shiftTemplateId is provided, filter by shift
+    if (shiftTemplateId) {
+      where.shiftTemplateId = shiftTemplateId
+    }
+
+    // If departmentId is provided, filter by department
+    if (departmentId) {
+      where.timetable.departmentId = departmentId
     }
 
     // If classId is provided, filter by class
@@ -86,10 +96,19 @@ export async function GET(request: NextRequest) {
     const totalHours = Math.floor(totalMinutes / 60)
     const remainingMinutes = totalMinutes % 60
 
-    // Get shift template info
-    const shiftTemplate = await prisma.shiftTemplate.findUnique({
-      where: { id: shiftTemplateId },
-    })
+    // Get shift template info (only if shiftTemplateId is provided)
+    const shiftTemplate = shiftTemplateId
+      ? await prisma.shiftTemplate.findUnique({
+          where: { id: shiftTemplateId },
+        })
+      : null
+
+    // Get department info (only if departmentId is provided)
+    const department = departmentId
+      ? await prisma.department.findUnique({
+          where: { id: departmentId },
+        })
+      : null
 
     // Get semester info
     const semester = await prisma.semester.findUnique({
@@ -108,8 +127,11 @@ export async function GET(request: NextRequest) {
         totalMinutes: remainingMinutes,
       },
       shiftTemplate,
+      department,
       semester,
       day,
+      shiftTemplateId: shiftTemplateId || null,
+      departmentId: departmentId || null,
       classId: classId || null,
     })
   } catch (error) {

@@ -49,6 +49,10 @@ interface ReportData {
     startTime: string
     endTime: string
   } | null
+  department: {
+    id: string
+    name: string
+  } | null
   semester: {
     id: string
     name: string
@@ -58,6 +62,8 @@ interface ReportData {
     }
   } | null
   day: DayOfWeek
+  shiftTemplateId: string | null
+  departmentId: string | null
   classId: string | null
 }
 
@@ -66,12 +72,14 @@ export default function ShiftTimetableReportPage() {
   const [semesters, setSemesters] = useState<any[]>([])
   const [classes, setClasses] = useState<any[]>([])
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
   
   const [filters, setFilters] = useState({
     academicYearId: '',
     semesterId: '',
     day: '' as DayOfWeek | '',
-    shiftTemplateId: '',
+    shiftTemplateId: '', // Optional
+    departmentId: '', // Optional
     classId: '', // Optional
   })
 
@@ -98,6 +106,10 @@ export default function ShiftTimetableReportPage() {
   const [classSearch, setClassSearch] = useState('')
   const classRef = useRef<HTMLDivElement>(null)
 
+  const [isDepartmentOpen, setIsDepartmentOpen] = useState(false)
+  const [departmentSearch, setDepartmentSearch] = useState('')
+  const departmentRef = useRef<HTMLDivElement>(null)
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -116,6 +128,9 @@ export default function ShiftTimetableReportPage() {
       if (classRef.current && !classRef.current.contains(event.target as Node)) {
         setIsClassOpen(false)
       }
+      if (departmentRef.current && !departmentRef.current.contains(event.target as Node)) {
+        setIsDepartmentOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
@@ -127,6 +142,7 @@ export default function ShiftTimetableReportPage() {
   useEffect(() => {
     fetchInitialData()
     fetchAllShiftTemplates()
+    fetchDepartments()
   }, [])
 
   useEffect(() => {
@@ -189,10 +205,22 @@ export default function ShiftTimetableReportPage() {
     }
   }
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch('/api/departments')
+      if (response.ok) {
+        const data = await response.json()
+        setDepartments(data.sort((a: any, b: any) => a.name.localeCompare(b.name)))
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+    }
+  }
+
   const generateReport = async () => {
-    // Validate required filters
-    if (!filters.academicYearId || !filters.semesterId || !filters.day || !filters.shiftTemplateId) {
-      alert('Please select Academic Year, Semester/Session, Day, and Shift')
+    // Validate required filters (only Academic Year, Semester/Session, and Day are required)
+    if (!filters.academicYearId || !filters.semesterId || !filters.day) {
+      alert('Please select Academic Year, Semester/Session, and Day')
       return
     }
 
@@ -202,10 +230,15 @@ export default function ShiftTimetableReportPage() {
         academicYearId: filters.academicYearId,
         semesterId: filters.semesterId,
         day: filters.day,
-        shiftTemplateId: filters.shiftTemplateId,
       })
 
-      // Add classId only if selected
+      // Add optional filters only if selected
+      if (filters.shiftTemplateId) {
+        params.append('shiftTemplateId', filters.shiftTemplateId)
+      }
+      if (filters.departmentId) {
+        params.append('departmentId', filters.departmentId)
+      }
       if (filters.classId) {
         params.append('classId', filters.classId)
       }
@@ -509,7 +542,7 @@ export default function ShiftTimetableReportPage() {
 
             {/* Shift */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">SHIFT *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">SHIFT (Optional)</label>
               <div className="relative" ref={shiftRef}>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -521,10 +554,22 @@ export default function ShiftTimetableReportPage() {
                       setIsShiftOpen(true)
                     }}
                     onFocus={() => setIsShiftOpen(true)}
-                    placeholder="Search Shift"
+                    placeholder="Search Shift (Leave empty for all shifts)"
                     className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
                   />
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  {filters.shiftTemplateId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilters({ ...filters, shiftTemplateId: '' })
+                        setShiftSearch('')
+                      }}
+                      className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
                 {isShiftOpen && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
@@ -543,6 +588,17 @@ export default function ShiftTimetableReportPage() {
                       </div>
                     </div>
                     <div className="overflow-y-auto max-h-48">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters({ ...filters, shiftTemplateId: '' })
+                          setIsShiftOpen(false)
+                          setShiftSearch('')
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                      >
+                        (All Shifts)
+                      </button>
                       {shiftTemplates
                         .filter(st => !shiftSearch || st.name.toLowerCase().includes(shiftSearch.toLowerCase()))
                         .map(shiftTemplate => (
@@ -557,6 +613,87 @@ export default function ShiftTimetableReportPage() {
                             className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors"
                           >
                             {shiftTemplate.name}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Department (Optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">DEPARTMENT (Optional)</label>
+              <div className="relative" ref={departmentRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={departments.find(d => d.id === filters.departmentId)?.name || departmentSearch}
+                    onChange={(e) => {
+                      setDepartmentSearch(e.target.value)
+                      setIsDepartmentOpen(true)
+                    }}
+                    onFocus={() => setIsDepartmentOpen(true)}
+                    placeholder="Search Department (Leave empty for all departments)"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+                  />
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  {filters.departmentId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilters({ ...filters, departmentId: '' })
+                        setDepartmentSearch('')
+                      }}
+                      className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {isDepartmentOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                    <div className="p-2 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={departmentSearch}
+                          onChange={(e) => setDepartmentSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Search Department"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-600 text-sm"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto max-h-48">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters({ ...filters, departmentId: '' })
+                          setIsDepartmentOpen(false)
+                          setDepartmentSearch('')
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors font-medium text-gray-700"
+                      >
+                        (All Departments)
+                      </button>
+                      {departments
+                        .filter(d => !departmentSearch || d.name.toLowerCase().includes(departmentSearch.toLowerCase()))
+                        .map(department => (
+                          <button
+                            key={department.id}
+                            type="button"
+                            onClick={() => {
+                              setFilters({ ...filters, departmentId: department.id })
+                              setIsDepartmentOpen(false)
+                              setDepartmentSearch('')
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors"
+                          >
+                            {department.name}
                           </button>
                         ))}
                     </div>
@@ -751,14 +888,18 @@ function ShiftReportView({ data }: { data: ReportData }) {
       </div>
 
       {/* Report Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 print:mb-4 print:grid-cols-4 print:gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-5 print:mb-4 print:grid-cols-5 print:gap-2">
         <div className="bg-blue-50 p-3 rounded print:bg-blue-50 print:p-2 print:rounded">
           <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">DAY</div>
           <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{DAY_LABELS[data.day]}</div>
         </div>
         <div className="bg-purple-50 p-3 rounded print:bg-purple-50 print:p-2 print:rounded">
           <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">SHIFT</div>
-          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.shiftTemplate?.name || 'N/A'}</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.shiftTemplate?.name || 'All Shifts'}</div>
+        </div>
+        <div className="bg-green-50 p-3 rounded print:bg-green-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">DEPARTMENT</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.department?.name || 'All Departments'}</div>
         </div>
         <div className="bg-yellow-50 p-3 rounded print:bg-yellow-50 print:p-2 print:rounded">
           <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">ACADEMIC YEAR</div>
