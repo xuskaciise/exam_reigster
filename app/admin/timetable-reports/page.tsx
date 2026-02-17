@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { FileText, Download, Printer, Calendar, Building2, Users, User, Clock, BookOpen, Search, ChevronDown } from 'lucide-react'
+import { FileText, Download, Printer, Calendar, Building2, Users, User, Clock, BookOpen, Search, ChevronDown, Image as ImageIcon } from 'lucide-react'
 import { Shift, DayOfWeek } from '@prisma/client'
 
 interface Timetable {
@@ -92,6 +92,7 @@ export default function TimetableReportsPage() {
   const [timetables, setTimetables] = useState<Timetable[]>([])
   const [reportData, setReportData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [classDescription, setClassDescription] = useState('')
 
   // Searchable dropdown states
   const [isAcademicYearOpen, setIsAcademicYearOpen] = useState(false)
@@ -241,7 +242,7 @@ export default function TimetableReportsPage() {
   const generateReport = async () => {
     // Validation based on report type
     if (!filters.semesterId || !filters.studyMode) {
-      alert('Please select Academic Year, Session, and Study Mode')
+      alert('Please select Academic Year, Semester/Session, and Study Mode')
       return
     }
 
@@ -391,6 +392,7 @@ export default function TimetableReportsPage() {
       department: departments.find(d => d.id === filters.departmentId),
       semester: timetable.semester,
       studyMode: filters.studyMode,
+      description: classDescription,
       entries: groupedByDay
     })
   }
@@ -399,13 +401,142 @@ export default function TimetableReportsPage() {
     window.print()
   }
 
+  const exportToImage = async () => {
+    if (!reportData) return
+
+    // Ensure we're on the client side
+    if (typeof window === 'undefined') {
+      alert('This feature is only available in the browser')
+      return
+    }
+
+    // Try export container first, fallback to visible report
+    let exportElement = document.getElementById('report-export')
+    let useVisibleReport = false
+
+    if (!exportElement) {
+      // Fallback: use visible report content
+      exportElement = document.getElementById('timetable-report-content')
+      useVisibleReport = true
+      
+      if (!exportElement) {
+        alert('Report content not found')
+        return
+      }
+    }
+
+    try {
+      // Store original styles
+      const originalStyles: any = {}
+      if (!useVisibleReport) {
+        originalStyles.opacity = exportElement.style.opacity
+        originalStyles.zIndex = exportElement.style.zIndex
+        originalStyles.pointerEvents = exportElement.style.pointerEvents
+        originalStyles.position = exportElement.style.position
+        originalStyles.top = exportElement.style.top
+        originalStyles.left = exportElement.style.left
+        originalStyles.visibility = exportElement.style.visibility
+        originalStyles.width = exportElement.style.width
+        
+        // Make element fully visible and in viewport for capture
+        exportElement.style.position = 'fixed'
+        exportElement.style.top = '0'
+        exportElement.style.left = '0'
+        exportElement.style.opacity = '1'
+        exportElement.style.zIndex = '999999'
+        exportElement.style.pointerEvents = 'none'
+        exportElement.style.visibility = 'visible'
+        exportElement.style.width = '1200px'
+      } else {
+        // For visible report, temporarily adjust width
+        originalStyles.width = exportElement.style.width
+        originalStyles.maxWidth = exportElement.style.maxWidth
+        exportElement.style.width = '1200px'
+        exportElement.style.maxWidth = '1200px'
+      }
+      
+      // Force reflow to ensure styles are applied
+      exportElement.offsetHeight
+      
+      // Wait for layout to be calculated and images to load
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Check element dimensions and content
+      const offsetHeight = exportElement.offsetHeight
+      const scrollHeight = exportElement.scrollHeight
+      const offsetWidth = exportElement.offsetWidth
+      const scrollWidth = exportElement.scrollWidth
+      
+      // Check if there's actual content
+      const hasContent = exportElement.querySelector('#lecturer-report-view, #class-report-view') || 
+                        exportElement.querySelector('.bg-blue-900, table')
+      
+      console.log('Export element check:', {
+        elementId: exportElement.id,
+        offsetHeight,
+        scrollHeight,
+        offsetWidth,
+        scrollWidth,
+        hasContent: !!hasContent,
+        childrenCount: exportElement.children.length,
+      })
+
+      if (scrollHeight === 0 || offsetHeight === 0) {
+        // Restore original styles
+        if (!useVisibleReport) {
+          Object.assign(exportElement.style, originalStyles)
+        } else {
+          exportElement.style.width = originalStyles.width || ''
+          exportElement.style.maxWidth = originalStyles.maxWidth || ''
+        }
+        alert('Report content has no height. Please try again.')
+        return
+      }
+
+      // Dynamically import html-to-image (client-side only)
+      const { toPng } = await import('html-to-image')
+
+      // Export as PNG with high quality
+      const dataUrl = await toPng(exportElement, {
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        quality: 1.0,
+        cacheBust: true,
+        useCORS: true,
+      })
+
+      // Restore original styles
+      if (!useVisibleReport) {
+        Object.assign(exportElement.style, originalStyles)
+      } else {
+        exportElement.style.width = originalStyles.width || ''
+        exportElement.style.maxWidth = originalStyles.maxWidth || ''
+      }
+
+      // Create download link
+      const link = document.createElement('a')
+      link.setAttribute('href', dataUrl)
+      const fileName = reportData.type === 'lecturer' 
+        ? `Lecturer_Timetable_${reportData.lecturer.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`
+        : `Class_Timetable_${reportData.class.classTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`
+      link.setAttribute('download', fileName)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Error exporting to image:', error)
+      alert('Failed to export image: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
+
   const exportToExcel = () => {
     if (!reportData) return
 
     let csvContent = ''
     
     if (reportData.type === 'lecturer') {
-      csvContent = 'Day,Time,Course Name,Class,Department,Session\n'
+      csvContent = 'Day,Time,Course Name,Class,Department,Semester/Session\n'
       DAY_ORDER.forEach(day => {
         const dayName = day.charAt(0) + day.slice(1).toLowerCase()
         if (reportData.entries[day] && reportData.entries[day].length > 0) {
@@ -512,6 +643,7 @@ export default function TimetableReportsPage() {
                     // Clear lecturer filter when switching to class report
                     setFilters(prev => ({ ...prev, lecturerId: '', classId: '' }))
                     setReportData(null)
+                    setClassDescription('')
                   }}
                   className="sr-only"
                 />
@@ -586,9 +718,9 @@ export default function TimetableReportsPage() {
               </div>
             </div>
 
-            {/* Session - Searchable */}
+            {/* Semester / Session - Searchable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">SESSION</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">SEMESTER / SESSION</label>
               <div className="relative" ref={semesterRef}>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -600,7 +732,7 @@ export default function TimetableReportsPage() {
                       setIsSemesterOpen(true)
                     }}
                     onFocus={() => setIsSemesterOpen(true)}
-                    placeholder="Search Session"
+                    placeholder="Search Semester / Session"
                     disabled={!filters.academicYearId}
                     className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
@@ -621,7 +753,7 @@ export default function TimetableReportsPage() {
                           value={semesterSearch}
                           onChange={(e) => setSemesterSearch(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          placeholder="Search Session"
+                          placeholder="Search Semester / Session"
                           className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-600 text-sm"
                           autoFocus
                         />
@@ -885,6 +1017,21 @@ export default function TimetableReportsPage() {
             )}
           </div>
 
+          {/* Description Field (Only for Class Reports) */}
+          {reportType === 'class' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">DESCRIPTION (Optional)</label>
+              <textarea
+                value={classDescription}
+                onChange={(e) => setClassDescription(e.target.value)}
+                placeholder="Enter optional description for the class timetable report..."
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 resize-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">This description will appear on the generated report.</p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
             <button
@@ -911,6 +1058,13 @@ export default function TimetableReportsPage() {
                   Excel
                 </button>
                 <button
+                  onClick={exportToImage}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Export Image
+                </button>
+                <button
                   onClick={() => window.print()}
                   className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
                 >
@@ -924,13 +1078,46 @@ export default function TimetableReportsPage() {
 
         {/* Report Preview */}
         {reportData && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 print:shadow-none print:border-0 print:p-0 print:m-0 print:w-full print:max-w-none print:block print-only-report" id="timetable-report-content">
-            {reportData.type === 'lecturer' ? (
-              <LecturerReportView data={reportData} />
-            ) : (
-              <ClassReportView data={reportData} />
-            )}
-          </div>
+          <>
+            {/* Display Container (with styling) */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 print:shadow-none print:border-0 print:p-0 print:m-0 print:w-full print:max-w-none print:block print-only-report" id="timetable-report-content">
+              {reportData.type === 'lecturer' ? (
+                <LecturerReportView data={reportData} />
+              ) : (
+                <ClassReportView data={reportData} />
+              )}
+            </div>
+            
+            {/* Export Container (hidden but rendered, fixed width, no styling) */}
+            <div 
+              id="report-export" 
+              className="report-export-container"
+              style={{
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '1200px',
+                minHeight: '100px',
+                background: 'white',
+                boxShadow: 'none',
+                borderRadius: '0',
+                padding: '0',
+                margin: '0',
+                overflow: 'visible',
+                opacity: '0',
+                zIndex: '-1',
+                pointerEvents: 'none',
+                visibility: 'visible',
+                display: 'block',
+              }}
+            >
+              {reportData.type === 'lecturer' ? (
+                <LecturerReportView data={reportData} />
+              ) : (
+                <ClassReportView data={reportData} />
+              )}
+            </div>
+          </>
         )}
       </div>
     </AdminLayout>
@@ -971,89 +1158,89 @@ function LecturerReportView({ data }: { data: any }) {
   return (
     <div className="print:p-0 print:w-full print:max-w-none print:m-0 print:block" id="lecturer-report-view">
       {/* Header */}
-      <div className="bg-blue-900 text-white p-8 mb-6 print:bg-blue-900 print:text-white print:p-6 print:mb-4">
+      <div className="bg-blue-900 text-white p-6 mb-5 print:bg-blue-900 print:text-white print:p-5 print:mb-4">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2 print:text-2xl print:font-bold print:text-white">Somali International University</h1>
-          <h2 className="text-xl mb-4 print:text-lg print:text-white print:mb-2">Faculty of Engineering and Computer Science</h2>
-          <h3 className="text-2xl font-semibold print:text-xl print:font-semibold print:text-white print:mt-2">Lecturer Timetable Report</h3>
+          <h1 className="text-2xl font-bold mb-1 print:text-xl print:font-bold print:text-white">Somali International University</h1>
+          <h2 className="text-lg mb-2 print:text-base print:text-white print:mb-1">Faculty of Engineering and Computer Science</h2>
+          <h3 className="text-xl font-semibold print:text-lg print:font-semibold print:text-white">Lecturer Timetable Report</h3>
         </div>
       </div>
 
       {/* Lecturer Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 print:mb-4 print:grid-cols-5 print:gap-3">
-        <div className="bg-blue-50 p-4 rounded-lg print:bg-blue-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">LECTURER NAME</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.lecturer.fullName}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-5 print:mb-4 print:grid-cols-5 print:gap-2">
+        <div className="bg-blue-50 p-3 rounded print:bg-blue-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">LECTURER NAME</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.lecturer.fullName}</div>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg print:bg-purple-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">ACADEMIC YEAR</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.academicYear?.name || 'N/A'}</div>
+        <div className="bg-purple-50 p-3 rounded print:bg-purple-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">ACADEMIC YEAR</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.academicYear?.name || 'N/A'}</div>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg print:bg-yellow-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">SESSION</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.semester?.name || 'N/A'}</div>
+        <div className="bg-yellow-50 p-3 rounded print:bg-yellow-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">SEMESTER / SESSION</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.semester?.name || 'N/A'}</div>
         </div>
-        <div className="bg-orange-50 p-4 rounded-lg print:bg-orange-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">STUDY MODE</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.studyMode === 'FULL_TIME' ? 'Full-time' : 'Part-time'}</div>
+        <div className="bg-orange-50 p-3 rounded print:bg-orange-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">STUDY MODE</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.studyMode === 'FULL_TIME' ? 'Full-time' : 'Part-time'}</div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg print:bg-green-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">TOTAL HOURS</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">
+        <div className="bg-green-50 p-3 rounded print:bg-green-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">TOTAL HOURS</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">
             {totalHours.hours}h {totalHours.minutes > 0 ? `${totalHours.minutes}m` : ''}
           </div>
         </div>
       </div>
 
       {/* Timetable Table */}
-      <div className="overflow-x-auto print:overflow-visible print:block print:w-full print:visible">
-        <table className="w-full border-collapse print:border-collapse print:border print:border-black print:table print:w-full print:visible">
-          <thead className="print:table-header-group print:visible">
-            <tr className="bg-gray-100 print:bg-gray-200 print:bg-gray-100 print:table-row print:visible">
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Day</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Time</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Course Name</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Class</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Department</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Session / Semester</th>
+      <div className="overflow-x-auto print:overflow-visible print:block print:w-full">
+        <table className="w-full border-collapse border border-gray-300 print:border-collapse print:border print:border-gray-400">
+          <thead>
+            <tr className="bg-gray-100 print:bg-gray-100">
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Day</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Time</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Course Name</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Class</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Department</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Session / Semester</th>
             </tr>
           </thead>
-          <tbody className="print:table-row-group print:visible">
+          <tbody>
             {DAY_ORDER.map(day => {
               const dayName = day.charAt(0) + day.slice(1).toLowerCase()
               const entries = data.entries[day] || []
               
               if (entries.length === 0) {
                 return (
-                  <tr key={day} className="hover:bg-gray-50 print:hover:bg-white print:table-row print:visible">
-                    <td className="border border-gray-300 px-4 py-3 font-medium text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{dayName}</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
+                  <tr key={day} className="hover:bg-gray-50 print:hover:bg-white">
+                    <td className="border border-gray-300 px-3 py-2 font-medium text-gray-900 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{dayName}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
                   </tr>
                 )
               }
 
               return entries.map((entry: any, index: number) => (
-                <tr key={`${day}-${index}`} className="hover:bg-gray-50 print:hover:bg-white print:table-row print:visible">
+                <tr key={`${day}-${index}`} className="hover:bg-gray-50 print:hover:bg-white">
                   {index === 0 && (
-                    <td rowSpan={entries.length} className="border border-gray-300 px-4 py-3 font-medium text-gray-900 align-top print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                    <td rowSpan={entries.length} className="border border-gray-300 px-3 py-2 font-medium text-gray-900 align-top text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                       {dayName}
                     </td>
                   )}
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                     {formatTime12Hour(entry.shiftTemplate.startTime)} - {formatTime12Hour(entry.shiftTemplate.endTime)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{getCourseNameOnly(entry.courseName)}</td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{getCourseNameOnly(entry.courseName)}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                     {entry.class ? entry.class.classTitle : 'N/A'}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                     {entry.department ? entry.department.name : 'N/A'}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{entry.semester.name}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{entry.semester.name}</td>
                 </tr>
               ))
             })}
@@ -1062,10 +1249,10 @@ function LecturerReportView({ data }: { data: any }) {
       </div>
 
       {/* Footer */}
-      <div className="mt-8 pt-4 border-t border-gray-300 print:mt-6 print:border-t print:border-black print:pt-2 print:footer">
+      <div className="mt-6 pt-3 border-t border-gray-300 print:mt-4 print:border-t print:border-gray-400 print:pt-2">
         <div className="text-xs text-gray-600 print:text-black print:text-xs">
           <p>Generated: {new Date().toLocaleString()}</p>
-          <p className="mt-1">SIU FECT Timetable Management System</p>
+          <p className="mt-0.5">SIU FECT Timetable Management System</p>
         </div>
       </div>
     </div>
@@ -1090,73 +1277,81 @@ function ClassReportView({ data }: { data: any }) {
   return (
     <div className="print:p-0 print:w-full print:max-w-none print:m-0 print:block" id="class-report-view">
       {/* Header */}
-      <div className="bg-blue-900 text-white p-8 mb-6 print:bg-blue-900 print:text-white print:p-6 print:mb-4">
+      <div className="bg-blue-900 text-white p-6 mb-5 print:bg-blue-900 print:text-white print:p-5 print:mb-4">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2 print:text-2xl print:font-bold print:text-white">Somali International University</h1>
-          <h2 className="text-xl mb-4 print:text-lg print:text-white print:mb-2">Faculty of Engineering and Computer Science</h2>
-          <h3 className="text-2xl font-semibold print:text-xl print:font-semibold print:text-white print:mt-2">Class Timetable</h3>
+          <h1 className="text-2xl font-bold mb-1 print:text-xl print:font-bold print:text-white">Somali International University</h1>
+          <h2 className="text-lg mb-2 print:text-base print:text-white print:mb-1">Faculty of Engineering and Computer Science</h2>
+          <h3 className="text-xl font-semibold print:text-lg print:font-semibold print:text-white">Class Timetable</h3>
         </div>
       </div>
 
       {/* Class Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 print:mb-4 print:grid-cols-4 print:gap-3">
-        <div className="bg-blue-50 p-4 rounded-lg print:bg-blue-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">CLASS NAME</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.class.classTitle}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5 print:mb-4 print:grid-cols-4 print:gap-2">
+        <div className="bg-blue-50 p-3 rounded print:bg-blue-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">CLASS NAME</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.class.classTitle}</div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg print:bg-green-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">DEPARTMENT</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.department?.name || 'N/A'}</div>
+        <div className="bg-green-50 p-3 rounded print:bg-green-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">DEPARTMENT</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.department?.name || 'N/A'}</div>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg print:bg-purple-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">SEMESTER</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.semester?.name || 'N/A'}</div>
+        <div className="bg-purple-50 p-3 rounded print:bg-purple-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">SEMESTER</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.semester?.name || 'N/A'}</div>
         </div>
-        <div className="bg-orange-50 p-4 rounded-lg print:bg-orange-50 print:p-3 print:rounded">
-          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700">STUDY MODE</div>
-          <div className="font-semibold text-gray-900 print:text-sm print:text-gray-900">{data.studyMode === 'FULL_TIME' ? 'Full-time' : 'Part-time'}</div>
+        <div className="bg-orange-50 p-3 rounded print:bg-orange-50 print:p-2 print:rounded">
+          <div className="text-xs text-gray-600 mb-1 print:text-xs print:font-medium print:text-gray-700 uppercase">STUDY MODE</div>
+          <div className="font-semibold text-gray-900 text-sm print:text-sm print:text-gray-900">{data.studyMode === 'FULL_TIME' ? 'Full-time' : 'Part-time'}</div>
         </div>
       </div>
 
+      {/* Description (if provided) */}
+      {data.description && data.description.trim() && (
+        <div className="mb-5 p-3 bg-gray-50 border border-gray-200 rounded print:bg-gray-50 print:border print:border-gray-300 print:p-2 print:mb-4 print:rounded">
+          <div className="text-xs font-medium text-gray-700 mb-1 print:text-xs print:font-semibold print:text-gray-900 uppercase">DESCRIPTION</div>
+          <div className="text-sm text-gray-700 whitespace-pre-wrap print:text-sm print:text-gray-900">{data.description}</div>
+        </div>
+      )}
+
       {/* Timetable Table */}
-      <div className="overflow-x-auto print:overflow-visible print:block print:w-full print:visible">
-        <table className="w-full border-collapse print:border-collapse print:border print:border-black print:table print:w-full print:visible">
-          <thead className="print:table-header-group print:visible">
-            <tr className="bg-gray-100 print:bg-gray-200 print:bg-gray-100 print:table-row print:visible">
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Day</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Time</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Course Name</th>
-              <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:font-bold print:table-cell print:visible">Lecturer Name</th>
+      <div className="overflow-x-auto print:overflow-visible print:block print:w-full">
+        <table className="w-full border-collapse border border-gray-300 print:border-collapse print:border print:border-gray-400">
+          <thead>
+            <tr className="bg-gray-100 print:bg-gray-100">
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Day</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Time</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Course Name</th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-xs font-semibold text-gray-900 print:border-gray-400 print:px-2 print:py-1.5 print:text-xs print:font-bold">Lecturer Name</th>
             </tr>
           </thead>
-          <tbody className="print:table-row-group print:visible">
+          <tbody>
             {filteredDays.map(day => {
               const dayName = day.charAt(0) + day.slice(1).toLowerCase()
               const entries = data.entries[day] || []
               
               if (entries.length === 0) {
                 return (
-                  <tr key={day} className="hover:bg-gray-50 print:hover:bg-white print:table-row print:visible">
-                    <td className="border border-gray-300 px-4 py-3 font-medium text-gray-900 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{dayName}</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
-                    <td className="border border-gray-300 px-4 py-3 text-gray-500 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">—</td>
+                  <tr key={day} className="hover:bg-gray-50 print:hover:bg-white">
+                    <td className="border border-gray-300 px-3 py-2 font-medium text-gray-900 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{dayName}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-500 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">—</td>
                   </tr>
                 )
               }
 
               return entries.map((entry: any, index: number) => (
-                <tr key={`${day}-${index}`} className="hover:bg-gray-50 print:hover:bg-white print:table-row print:visible">
+                <tr key={`${day}-${index}`} className="hover:bg-gray-50 print:hover:bg-white">
                   {index === 0 && (
-                    <td rowSpan={entries.length} className="border border-gray-300 px-4 py-3 font-medium text-gray-900 align-top print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                    <td rowSpan={entries.length} className="border border-gray-300 px-3 py-2 font-medium text-gray-900 align-top text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                       {dayName}
                     </td>
                   )}
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">
                     {formatTime12Hour(entry.shiftTemplate.startTime)} - {formatTime12Hour(entry.shiftTemplate.endTime)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{getCourseNameOnly(entry.courseName)}</td>
-                  <td className="border border-gray-300 px-4 py-3 text-gray-700 print:border-black print:px-2 print:py-2 print:text-xs print:table-cell print:visible">{entry.lecturerName}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{getCourseNameOnly(entry.courseName)}</td>
+                  <td className="border border-gray-300 px-3 py-2 text-gray-700 text-sm print:border-gray-400 print:px-2 print:py-1.5 print:text-xs">{entry.lecturerName}</td>
                 </tr>
               ))
             })}
@@ -1165,10 +1360,10 @@ function ClassReportView({ data }: { data: any }) {
       </div>
 
       {/* Footer */}
-      <div className="mt-8 pt-4 border-t border-gray-300 print:mt-6 print:border-t print:border-black print:pt-2 print:footer">
+      <div className="mt-6 pt-3 border-t border-gray-300 print:mt-4 print:border-t print:border-gray-400 print:pt-2">
         <div className="text-xs text-gray-600 print:text-black print:text-xs">
           <p>Generated: {new Date().toLocaleString()}</p>
-          <p className="mt-1">SIU FECT Timetable Management System</p>
+          <p className="mt-0.5">SIU FECT Timetable Management System</p>
         </div>
       </div>
     </div>

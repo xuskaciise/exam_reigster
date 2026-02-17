@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Plus, Pencil, Trash2, Filter, Download, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Filter, Download, Users, Search } from 'lucide-react'
 
 export default function ClassesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -17,6 +17,7 @@ export default function ClassesPage() {
     departmentId: '',
   })
   const [totalClasses, setTotalClasses] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -162,6 +163,22 @@ export default function ClassesPage() {
     return 'bg-gray-100 text-gray-700'
   }
 
+  // Filter classes based on search query
+  const filteredClasses = classes.filter(cls => {
+    if (!searchQuery.trim()) return true
+    
+    const query = searchQuery.toLowerCase().trim()
+    const classTitle = cls.classTitle?.toLowerCase() || ''
+    const department = cls.department?.toLowerCase() || ''
+    const classId = `cls-${classes.indexOf(cls) + 1001}`.toLowerCase()
+    
+    return (
+      classTitle.includes(query) ||
+      department.includes(query) ||
+      classId.includes(query)
+    )
+  })
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -239,17 +256,30 @@ export default function ClassesPage() {
 
           {/* Right Panel - Existing Classes */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Existing Classes</h2>
-              <div className="flex items-center gap-2">
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </button>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Export
-                </button>
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Existing Classes</h2>
+                <div className="flex items-center gap-2">
+                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filter
+                  </button>
+                  <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
+                </div>
+              </div>
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by class name, department, or ID..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -280,14 +310,15 @@ export default function ClassesPage() {
                         Loading classes...
                       </td>
                     </tr>
-                  ) : classes.length === 0 ? (
+                  ) : filteredClasses.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                        No classes found. Create your first class to get started.
+                        {searchQuery ? `No classes found matching "${searchQuery}"` : 'No classes found. Create your first class to get started.'}
                       </td>
                     </tr>
                   ) : (
-                    classes.map((cls, index) => {
+                    filteredClasses.map((cls) => {
+                      const originalIndex = classes.findIndex(c => c.id === cls.id)
                       const createdDate = new Date(cls.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
@@ -296,7 +327,7 @@ export default function ClassesPage() {
                       return (
                         <tr key={cls.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">#CLS-{String(1000 + index + 1).padStart(4, '0')}</span>
+                            <span className="text-sm font-medium text-gray-900">#CLS-{String(1000 + originalIndex + 1).padStart(4, '0')}</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{cls.classTitle}</div>
@@ -336,7 +367,11 @@ export default function ClassesPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Showing 1 to {Math.min(4, classes.length)} of {classes.length} results
+                {searchQuery ? (
+                  <>Showing {filteredClasses.length} of {classes.length} results</>
+                ) : (
+                  <>Showing 1 to {Math.min(4, classes.length)} of {classes.length} results</>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">←</button>

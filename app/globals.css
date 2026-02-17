@@ -107,7 +107,8 @@
   }
 
   /* Show report content - CRITICAL */
-  #timetable-report-content {
+  #timetable-report-content,
+  #shift-report-content {
     display: block !important;
     visibility: visible !important;
     margin: 0 !important;
@@ -120,7 +121,8 @@
   }
 
   /* Show all descendants of report content */
-  #timetable-report-content * {
+  #timetable-report-content *,
+  #shift-report-content * {
     visibility: visible !important;
   }
 
@@ -137,6 +139,7 @@
 
   /* CRITICAL: Force table elements to display correctly */
   #timetable-report-content table,
+  #shift-report-content table,
   #lecturer-report-view table,
   #class-report-view table {
     display: table !important;
@@ -255,4 +258,52 @@
   #timetable-report-content .print\\:break-before {
     page-break-before: always !important;
   }
+}
+
+/* Export Container Styles - Remove shadows and rounded corners */
+#report-export,
+#report-export * {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+#report-export {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 1200px !important;
+  background: white !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  display: block !important;
+  opacity: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  visibility: visible !important;
+}
+
+/* Ensure export container content is properly styled */
+#report-export #lecturer-report-view,
+#report-export #class-report-view {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  background: white !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Remove all rounded corners and shadows from export container children */
+#report-export .rounded,
+#report-export .rounded-lg,
+#report-export [class*="rounded"] {
+  border-radius: 0 !important;
+}
+
+#report-export .shadow,
+#report-export .shadow-sm,
+#report-export [class*="shadow"] {
+  box-shadow: none !important;
 }

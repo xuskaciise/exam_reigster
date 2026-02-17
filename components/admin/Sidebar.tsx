@@ -65,6 +65,7 @@ export default function Sidebar() {
   const toolItems: NavItem[] = [
     { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { name: 'Timetable Reports', href: '/admin/timetable-reports', icon: FileText },
+    { name: 'Shift Timetable Report', href: '/admin/shift-timetable-report', icon: CalendarDays },
     { name: 'Open/Close Registration', href: '/admin/registration-control', icon: Link2 },
     { name: 'Departments', href: '/admin/departments', icon: Building2 },
     { name: 'Classes', href: '/admin/classes', icon: Users },
