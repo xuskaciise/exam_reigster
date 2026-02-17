@@ -316,7 +316,6 @@ export default function ShiftTimetableReportPage() {
         backgroundColor: '#ffffff',
         quality: 1.0,
         cacheBust: true,
-        useCORS: true,
       })
 
       if (!useVisibleReport) {

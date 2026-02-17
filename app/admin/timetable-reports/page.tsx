@@ -502,7 +502,6 @@ export default function TimetableReportsPage() {
         backgroundColor: '#ffffff',
         quality: 1.0,
         cacheBust: true,
-        useCORS: true,
       })
 
       // Restore original styles
