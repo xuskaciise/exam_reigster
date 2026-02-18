@@ -1276,7 +1276,10 @@ function ShiftReportView({ data }: { data: ReportData }) {
                 if (!timeDayMap[timeKey]) {
                   timeDayMap[timeKey] = {} as Record<DayOfWeek, any>
                 }
-                timeDayMap[timeKey][entry.dayOfWeek] = entry
+                const dayOfWeek = entry.dayOfWeek as DayOfWeek
+                if (dayOfWeek && DAY_ORDER.includes(dayOfWeek)) {
+                  timeDayMap[timeKey][dayOfWeek] = entry
+                }
               })
 
               return (
