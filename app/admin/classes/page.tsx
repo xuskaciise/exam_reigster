@@ -15,6 +15,7 @@ export default function ClassesPage() {
   const [formData, setFormData] = useState({
     classTitle: '',
     departmentId: '',
+    room: '',
   })
   const [totalClasses, setTotalClasses] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
@@ -70,13 +71,14 @@ export default function ClassesPage() {
         body: JSON.stringify({
           classTitle: formData.classTitle,
           departmentName: selectedDept.name,
+          room: formData.room || null,
         }),
       })
 
       if (response.ok) {
         await fetchData()
         setShowCreateModal(false)
-        setFormData({ classTitle: '', departmentId: '' })
+        setFormData({ classTitle: '', departmentId: '', room: '' })
       } else {
         const error = await response.json()
         console.error('Error response:', error)
@@ -95,6 +97,7 @@ export default function ClassesPage() {
     setFormData({
       classTitle: cls.classTitle,
       departmentId: dept?.id || '',
+      room: cls.room || '',
     })
     setShowEditModal(true)
   }
@@ -119,6 +122,7 @@ export default function ClassesPage() {
           id: editingClass.id,
           classTitle: formData.classTitle,
           departmentName: selectedDept.name,
+          room: formData.room || null,
         }),
       })
 
@@ -126,14 +130,15 @@ export default function ClassesPage() {
         await fetchData()
         setShowEditModal(false)
         setEditingClass(null)
-        setFormData({ classTitle: '', departmentId: '' })
+        setFormData({ classTitle: '', departmentId: '', room: '' })
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to update class')
+        console.error('Update error response:', error)
+        alert(error.error || error.details || 'Failed to update class')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating class:', error)
-      alert('Failed to update class. Please try again.')
+      alert(`Failed to update class: ${error?.message || 'Unknown error'}`)
     }
   }
 
@@ -230,6 +235,18 @@ export default function ClassesPage() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Room (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.room}
+                    onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                    placeholder="Enter room number/location"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
                 <button
                   type="submit"
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
@@ -296,6 +313,9 @@ export default function ClassesPage() {
                       DEPARTMENT
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ROOM
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       DATE CREATED
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -336,6 +356,9 @@ export default function ClassesPage() {
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDepartmentColor(cls.department)}`}>
                               {cls.department}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{cls.room || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{createdDate}</div>
@@ -421,13 +444,25 @@ export default function ClassesPage() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.room}
+                  onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                  placeholder="Enter room number/location"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowEditModal(false)
                     setEditingClass(null)
-                    setFormData({ classTitle: '', departmentId: '' })
+                    setFormData({ classTitle: '', departmentId: '', room: '' })
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >

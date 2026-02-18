@@ -6,24 +6,35 @@ import { DayOfWeek } from '@prisma/client'
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const reportType = searchParams.get('reportType') || 'day-shift'
     const academicYearId = searchParams.get('academicYearId')
     const semesterId = searchParams.get('semesterId')
     const day = searchParams.get('day') as DayOfWeek | null
-    const shiftTemplateId = searchParams.get('shiftTemplateId') // Optional
+    const shiftTemplateId = searchParams.get('shiftTemplateId') // Optional for day-shift, required for all-days-all-classes
     const departmentId = searchParams.get('departmentId') // Optional
     const classId = searchParams.get('classId') // Optional
+    const studyMode = searchParams.get('studyMode') as 'FULL_TIME' | 'PART_TIME' | null // Optional
 
-    // Validate required parameters (only Academic Year, Semester, and Day are required)
-    if (!academicYearId || !semesterId || !day) {
+    // Validate required parameters based on report type
+    if (!academicYearId || !semesterId) {
       return NextResponse.json(
-        { error: 'Missing required parameters: academicYearId, semesterId, day' },
+        { error: 'Missing required parameters: academicYearId, semesterId' },
         { status: 400 }
       )
     }
 
+    if (reportType === 'all-days-all-classes') {
+      if (!departmentId) {
+        return NextResponse.json(
+          { error: 'Missing required parameter: departmentId for All Days All Classes report' },
+          { status: 400 }
+        )
+      }
+    }
+    // For day-shift report, day is optional - if null, show all days
+
     // Build where clause for timetable entries
     const where: any = {
-      dayOfWeek: day,
       timetable: {
         semesterId: semesterId,
         semester: {
@@ -31,6 +42,12 @@ export async function GET(request: NextRequest) {
         },
       },
     }
+
+    // For day-shift report, filter by day (only if day is provided)
+    if (reportType === 'day-shift' && day) {
+      where.dayOfWeek = day
+    }
+    // If day is null for day-shift, don't filter by day (show all days)
 
     // If shiftTemplateId is provided, filter by shift
     if (shiftTemplateId) {
@@ -42,9 +59,14 @@ export async function GET(request: NextRequest) {
       where.timetable.departmentId = departmentId
     }
 
-    // If classId is provided, filter by class
-    if (classId) {
+    // If classId is provided, filter by class (only for day-shift)
+    if (classId && reportType === 'day-shift') {
       where.timetable.classId = classId
+    }
+
+    // If studyMode is provided, filter by study mode
+    if (studyMode) {
+      where.timetable.studyMode = studyMode
     }
 
     // Fetch timetable entries with all necessary relations
@@ -65,6 +87,9 @@ export async function GET(request: NextRequest) {
         shiftTemplate: true,
       },
       orderBy: [
+        {
+          dayOfWeek: 'asc',
+        },
         {
           timetable: {
             class: {
@@ -129,10 +154,12 @@ export async function GET(request: NextRequest) {
       shiftTemplate,
       department,
       semester,
-      day,
+      day: day || null,
+      reportType,
       shiftTemplateId: shiftTemplateId || null,
       departmentId: departmentId || null,
       classId: classId || null,
+      studyMode: studyMode || null,
     })
   } catch (error) {
     console.error('Error fetching shift timetable report:', error)

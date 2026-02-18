@@ -151,7 +151,20 @@
     border: 1px solid #000 !important;
   }
 
+  /* Compact layout for All Days All Classes report */
+  #shift-report-content .max-w-\[1200px\] {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Ensure day sections don't break awkwardly */
+  #shift-report-content .print\:break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
   #timetable-report-content thead,
+  #shift-report-content thead,
   #lecturer-report-view thead,
   #class-report-view thead {
     display: table-header-group !important;
@@ -159,6 +172,7 @@
   }
 
   #timetable-report-content tbody,
+  #shift-report-content tbody,
   #lecturer-report-view tbody,
   #class-report-view tbody {
     display: table-row-group !important;
@@ -166,6 +180,7 @@
   }
 
   #timetable-report-content tr,
+  #shift-report-content tr,
   #lecturer-report-view tr,
   #class-report-view tr {
     display: table-row !important;
@@ -175,6 +190,8 @@
 
   #timetable-report-content td,
   #timetable-report-content th,
+  #shift-report-content td,
+  #shift-report-content th,
   #lecturer-report-view td,
   #lecturer-report-view th,
   #class-report-view td,
@@ -188,6 +205,7 @@
 
   /* Table header styling */
   #timetable-report-content th,
+  #shift-report-content th,
   #lecturer-report-view th,
   #class-report-view th {
     background-color: #f0f0f0 !important;

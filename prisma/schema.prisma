@@ -59,6 +59,7 @@ model Class {
   id           String     @id @default(cuid())
   classTitle   String     // e.g., "CS-2024-A", "CE-2024-B"
   departmentId String
+  room         String?    // Class room/location
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

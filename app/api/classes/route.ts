@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       classTitle: cls.classTitle,
       departmentId: cls.departmentId,
       department: cls.department.name,
+      room: cls.room || null,
       createdAt: cls.createdAt.toISOString(),
     }))
 
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
       data: {
         classTitle: validated.classTitle,
         departmentId: department.id,
+        room: body.room && body.room.trim() !== '' ? body.room.trim() : null,
       },
       include: {
         department: {
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
         classTitle: newClass.classTitle,
         departmentId: newClass.departmentId,
         department: newClass.department.name,
+        room: newClass.room || null,
         createdAt: newClass.createdAt.toISOString(),
       },
       { status: 201 }
@@ -190,6 +193,10 @@ export async function PATCH(request: NextRequest) {
     if (departmentId) {
       updatePayload.departmentId = departmentId
     }
+    // Always include room field - set to null if empty string
+    if (updateData.room !== undefined) {
+      updatePayload.room = updateData.room && updateData.room.trim() !== '' ? updateData.room.trim() : null
+    }
 
     const updatedClass = await prisma.class.update({
       where: { id },
@@ -209,6 +216,7 @@ export async function PATCH(request: NextRequest) {
       classTitle: updatedClass.classTitle,
       departmentId: updatedClass.departmentId,
       department: updatedClass.department.name,
+      room: updatedClass.room || null,
       createdAt: updatedClass.createdAt.toISOString(),
     })
   } catch (error: any) {
@@ -219,8 +227,9 @@ export async function PATCH(request: NextRequest) {
       )
     }
     console.error('Error updating class:', error)
+    console.error('Error details:', error.message, error.meta)
     return NextResponse.json(
-      { error: 'Failed to update class' },
+      { error: 'Failed to update class', details: error.message },
       { status: 500 }
     )
   }
